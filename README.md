@@ -64,8 +64,83 @@ personal use but means Android will warn you about an unknown source. On the
 phone: open the file, allow your browser or file manager to install unknown
 apps when prompted, then install.
 
-To share it more widely you would want a release build signed with your own
-keystore — say the word and I will add that to the workflow.
+For a build you can share, see below.
+
+## Signing your own release
+
+The `Release APK` workflow produces a minified, properly signed APK. Your
+keystore and its passwords live only in GitHub Secrets — never in this repo,
+and never on the build machine after the run finishes.
+
+### 1. Create a keystore
+
+`keytool` ships with any JDK. If you do not have one, install Temurin 17
+(`winget install EclipseAdoptium.Temurin.17.JDK`) or use the one bundled with
+Android Studio.
+
+```bash
+keytool -genkeypair -v -keystore release.jks -alias adblocker -keyalg RSA -keysize 4096 -validity 10000
+```
+
+It will ask for a keystore password, then some identifying details (a name is
+enough; the rest can be left blank), then a key password — pressing Enter reuses
+the keystore password, which is fine.
+
+> **Back this file up somewhere safe.** Android identifies an app by its signing
+> key. If you lose `release.jks`, you can never ship an update to anyone who
+> installed this build — they would have to uninstall and lose their settings
+> first. There is no recovery path.
+
+### 2. Turn it into a secret
+
+The keystore is binary, so it has to be base64-encoded to live in a secret.
+In PowerShell:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("release.jks")) | Set-Content -NoNewline release.jks.base64
+```
+
+### 3. Add four repository secrets
+
+Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+
+| Secret | Value |
+| --- | --- |
+| `KEYSTORE_BASE64` | the entire contents of `release.jks.base64` |
+| `KEYSTORE_PASSWORD` | the keystore password you chose |
+| `KEY_ALIAS` | `adblocker` |
+| `KEY_PASSWORD` | the key password (same as the keystore password if you pressed Enter) |
+
+Then delete `release.jks.base64` — it is a plaintext copy of your private key.
+Both it and `release.jks` are gitignored, so neither can be committed by
+accident.
+
+### 4. Tag a release
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+The workflow runs the tests, builds, verifies the signature with `apksigner`,
+and creates a **draft** GitHub release with the APK and its SHA-256 attached.
+Nothing is publicly downloadable until you open the release and click Publish.
+
+You can also run it from the Actions tab via **Run workflow** to get a signed
+APK as a build artifact without creating a release at all.
+
+### Building a signed release locally
+
+Create `keystore.properties` next to `settings.gradle.kts` (it is gitignored):
+
+```properties
+storeFile=/absolute/path/to/release.jks
+storePassword=...
+keyAlias=adblocker
+keyPassword=...
+```
+
+Then `./gradlew assembleRelease`. Without this file the release build still
+compiles, it just comes out unsigned.
 
 ## Using it
 

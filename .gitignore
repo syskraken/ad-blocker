@@ -7,3 +7,10 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# Signing material — never commit these.
+*.jks
+*.keystore
+*.p12
+keystore.properties
+*.base64
