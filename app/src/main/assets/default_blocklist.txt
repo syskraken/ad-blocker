@@ -1,0 +1,120 @@
+# Starter blocklist — the major ad and tracking networks.
+#
+# This is deliberately small so the app is useful the moment it is installed.
+# Tap "Update blocklists" in the app to pull the full lists (~150k domains).
+#
+# Format: one domain per line, or hosts-file style ("0.0.0.0 domain").
+# Blocking a domain also blocks everything under it.
+
+# Google advertising and measurement
+doubleclick.net
+googleadservices.com
+googlesyndication.com
+googletagservices.com
+googletagmanager.com
+google-analytics.com
+analytics.google.com
+adservice.google.com
+pagead2.googlesyndication.com
+admob.com
+app-measurement.com
+firebase-settings.crashlytics.com
+
+# Meta / Facebook — Audience Network only.
+# graph.facebook.com is deliberately absent: it carries "Log in with Facebook"
+# for third-party apps, and blocking it breaks sign-in far and wide.
+an.facebook.com
+connect.facebook.net
+
+# Amazon advertising
+amazon-adsystem.com
+aax.amazon-adsystem.com
+c.amazon-adsystem.com
+
+# Major mobile ad networks and SDKs
+applovin.com
+applvn.com
+adcolony.com
+unityads.unity3d.com
+auction.unityads.unity3d.com
+chartboost.com
+vungle.com
+inmobi.com
+mopub.com
+tapjoy.com
+supersonicads.com
+ironsrc.com
+smaato.net
+startappservice.com
+mobfox.com
+adtilt.com
+pubmatic.com
+rubiconproject.com
+casalemedia.com
+openx.net
+criteo.com
+criteo.net
+taboola.com
+outbrain.com
+adform.net
+adnxs.com
+advertising.com
+serving-sys.com
+2mdn.net
+moatads.com
+scorecardresearch.com
+zedo.com
+bidswitch.net
+sharethrough.com
+teads.tv
+smartadserver.com
+yieldmo.com
+gumgum.com
+media.net
+revcontent.com
+mgid.com
+propellerads.com
+adsterra.com
+exoclick.com
+trafficjunky.com
+
+# Analytics and crash or behaviour tracking
+branch.io
+adjust.com
+appsflyer.com
+kochava.com
+singular.net
+tenjin.io
+amplitude.com
+mixpanel.com
+segment.io
+segment.com
+heapanalytics.com
+fullstory.com
+hotjar.com
+mouseflow.com
+inspectlet.com
+quantserve.com
+bugsnag.com
+newrelic.com
+flurry.com
+localytics.com
+leanplum.com
+clevertap.com
+onesignal.com
+urbanairship.com
+airship.com
+braze.com
+appboy.com
+swrve.com
+apptimize.com
+optimizely.com
+sentry-cdn.com
+
+# Telemetry endpoints
+telemetry.mozilla.org
+data.microsoft.com
+vortex.data.microsoft.com
+settings-win.data.microsoft.com
+metrics.apple.com
+smetrics.apple.com

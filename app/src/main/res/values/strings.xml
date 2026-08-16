@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ad Blocker</string>
+
+    <string name="status_on">Filtering DNS for every app</string>
+    <string name="status_off">Off</string>
+    <string name="turn_on">Turn on</string>
+    <string name="turn_off">Turn off</string>
+
+    <string name="stats_format">%1$d lookups · %2$d blocked (%3$.1f%%)</string>
+
+    <string name="heading_lists">Blocklists</string>
+    <string name="list_info_format">%1$d domains · updated %2$s</string>
+    <string name="never_updated">never (using the bundled starter list)</string>
+    <string name="update_lists">Update blocklists</string>
+    <string name="updating">Downloading…</string>
+    <string name="update_done">Blocklists updated: %1$d domains</string>
+    <string name="update_failed">Update failed: %1$s</string>
+
+    <string name="heading_allowlist">Allowlist</string>
+    <string name="allowlist_help">Domains listed here are never blocked. Use this when an app breaks. One per line.</string>
+    <string name="allowlist_hint">example.com</string>
+    <string name="save_allowlist">Save allowlist</string>
+    <string name="allowlist_saved">Allowlist saved</string>
+
+    <string name="heading_recent">Recently blocked</string>
+    <string name="nothing_blocked_yet">Nothing blocked yet.</string>
+
+    <string name="permission_declined">VPN permission is required to filter DNS.</string>
+
+    <string name="channel_name">Blocking status</string>
+    <string name="notification_title">Ad Blocker is on</string>
+    <string name="notification_text">Filtering DNS for every app on this device.</string>
+    <string name="action_stop">Stop</string>
+
+    <string name="fgs_purpose">Runs a local, loopback-only VPN so advertising and tracker domains can be filtered at the DNS layer for all apps. No traffic leaves the device through this service.</string>
+</resources>
