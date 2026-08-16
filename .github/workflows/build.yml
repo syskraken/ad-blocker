@@ -40,6 +40,12 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --stacktrace
 
+      # Exercises R8 and resource shrinking, which the debug build skips. Without
+      # signing credentials this produces an unsigned APK, which is fine — the
+      # point is to catch release-only breakage here rather than at tag time.
+      - name: Build unsigned release APK (verifies minification)
+        run: gradle assembleRelease --stacktrace
+
       - name: Rename APK
         run: |
           mkdir -p out
