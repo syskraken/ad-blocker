@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -37,6 +38,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toggle: Button
     private lateinit var update: Button
     private lateinit var adultFilter: CheckBox
+    private lateinit var versionInfo: TextView
+    private lateinit var checkUpdates: Button
+
+    /** Set once a check finds something newer, so the button can offer it directly. */
+    private var availableUpdate: UpdateChecker.Release? = null
 
     private val ui = Handler(Looper.getMainLooper())
     private val background = Executors.newSingleThreadExecutor()
@@ -106,11 +112,23 @@ class MainActivity : AppCompatActivity() {
             toast(getString(R.string.blocklist_saved, BlockList.customSize()))
         }
 
+        versionInfo = findViewById(R.id.version_info)
+        checkUpdates = findViewById(R.id.check_updates)
+        versionInfo.text = getString(R.string.version_format, currentVersion())
+        checkUpdates.setOnClickListener {
+            val ready = availableUpdate
+            if (ready != null) openDownload(ready) else runUpdateCheck(announceResult = true)
+        }
+
         // Loading the bundled list off the main thread keeps first launch smooth.
         background.execute {
             BlockList.load(applicationContext)
             ui.post { render() }
         }
+
+        // A quiet check on launch: it only speaks up if there is something new,
+        // rather than interrupting with a dialog every time the app opens.
+        runUpdateCheck(announceResult = false)
 
         requestNotificationPermission()
     }
@@ -165,6 +183,70 @@ class MainActivity : AppCompatActivity() {
                 toast(message)
                 render()
             }
+        }
+    }
+
+    private fun currentVersion(): String = try {
+        packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
+    } catch (e: Exception) {
+        "0"
+    }
+
+    /**
+     * @param announceResult when false the check is silent unless an update
+     *   exists, so the launch-time check cannot spam toasts on a flaky network.
+     */
+    private fun runUpdateCheck(announceResult: Boolean) {
+        if (announceResult) {
+            checkUpdates.isEnabled = false
+            checkUpdates.text = getString(R.string.checking_updates)
+        }
+
+        val version = currentVersion()
+        background.execute {
+            val result = UpdateChecker.check(version)
+            ui.post {
+                checkUpdates.isEnabled = true
+                applyUpdateResult(result, announceResult)
+            }
+        }
+    }
+
+    private fun applyUpdateResult(result: UpdateChecker.Result, announceResult: Boolean) {
+        when (result) {
+            is UpdateChecker.Result.Available -> {
+                availableUpdate = result.release
+                versionInfo.text = getString(R.string.update_available, result.release.version)
+                checkUpdates.text = getString(R.string.download_update, result.release.version)
+            }
+
+            is UpdateChecker.Result.UpToDate -> {
+                availableUpdate = null
+                versionInfo.text = getString(R.string.version_format, currentVersion())
+                checkUpdates.text = getString(R.string.check_updates)
+                if (announceResult) toast(getString(R.string.up_to_date))
+            }
+
+            is UpdateChecker.Result.NoReleases -> {
+                checkUpdates.text = getString(R.string.check_updates)
+                if (announceResult) toast(getString(R.string.no_releases))
+            }
+
+            is UpdateChecker.Result.Failed -> {
+                checkUpdates.text = getString(R.string.check_updates)
+                if (announceResult) toast(getString(R.string.update_check_failed, result.reason))
+            }
+        }
+    }
+
+    /** Hands the APK to the browser: installing it here would need REQUEST_INSTALL_PACKAGES. */
+    private fun openDownload(release: UpdateChecker.Release) {
+        val target = release.apkUrl ?: release.pageUrl
+        if (target.isBlank()) return
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+        } catch (e: Exception) {
+            toast(getString(R.string.no_browser))
         }
     }
 

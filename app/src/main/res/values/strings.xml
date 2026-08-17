@@ -20,6 +20,17 @@
     <string name="update_done">Blocklists updated: %1$d domains</string>
     <string name="update_failed">Update failed: %1$s</string>
 
+    <string name="heading_updates">App updates</string>
+    <string name="version_format">Version %1$s</string>
+    <string name="check_updates">Check for updates</string>
+    <string name="checking_updates">Checking…</string>
+    <string name="up_to_date">You are on the latest version</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="download_update">Download %1$s</string>
+    <string name="no_releases">No releases published yet</string>
+    <string name="update_check_failed">Update check failed: %1$s</string>
+    <string name="no_browser">No browser available to open the download</string>
+
     <string name="heading_blocklist">Custom blocklist</string>
     <string name="blocklist_help">Extra domains to block, on top of the downloaded lists. Blocking a domain also blocks everything under it. One per line.</string>
     <string name="blocklist_hint">ads.example.com</string>
