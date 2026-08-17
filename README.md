@@ -117,16 +117,78 @@ accident.
 
 ### 4. Tag a release
 
+See "Cutting a release" below.
+
+## Cutting a release
+
+Once the four secrets exist, shipping a version is four commands and one click.
+
+### 1. Get your changes onto `main`
+
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git add -A && git commit -m "Describe the change" && git push
 ```
 
-The workflow runs the tests, builds, verifies the signature with `apksigner`,
-and creates a **draft** GitHub release with the APK and its SHA-256 attached.
-Nothing is publicly downloadable until you open the release and click Publish.
+Tags point at a commit. Tagging before pushing produces a release built from
+code nobody else can see, so push first and let the `Build APK` workflow go
+green before tagging.
 
-You can also run it from the Actions tab via **Run workflow** to get a signed
-APK as a build artifact without creating a release at all.
+### 2. Pick the version number
+
+Versions are `MAJOR.MINOR.PATCH`:
+
+- **PATCH** (`1.0.0` → `1.0.1`) — fixes only, nothing new
+- **MINOR** (`1.0.1` → `1.1.0`) — new features, nothing broken
+- **MAJOR** (`1.1.0` → `2.0.0`) — changes that break existing behaviour
+
+Only `versionName` comes from the tag. `versionCode`, the integer Android uses
+to decide what counts as an upgrade, is the workflow's run number, so it always
+increases on its own — never edit it by hand.
+
+### 3. Tag and push it
+
+```bash
+git tag -a v1.0.1 -m "TripoleFlux 1.0.1" && git push origin v1.0.1
+```
+
+The leading `v` matters: the workflow triggers on `v*` and strips it, so the tag
+`v1.0.1` becomes version `1.0.1`. `-a` makes an annotated tag, which records who
+made it and when; a bare `git tag v1.0.1` works too but keeps no such record.
+
+### 4. Watch the run
+
+<https://github.com/syskraken/ad-blocker/actions> — it restores the keystore,
+runs the tests, builds, verifies the result with `apksigner`, then opens a draft
+release and wipes the keystore off the runner. Around three minutes.
+
+The `apksigner verify` step is the one that matters: it fails on a wrong
+password or a bad alias instead of publishing an APK with an unusable signature.
+
+### 5. Publish the draft
+
+<https://github.com/syskraken/ad-blocker/releases> — open the draft, add notes
+if you want, click **Publish release**.
+
+Nothing is downloadable by anyone until you do, and the app's own update check
+ignores drafts, so this click is what actually ships the version.
+
+### Fixing a mistake
+
+A tag that was pushed too early can be removed and re-made:
+
+```bash
+git push origin :refs/tags/v1.0.1 && git tag -d v1.0.1
+```
+
+Delete the draft release it produced as well, or the next run will make a second
+one. Only ever do this to a draft — re-pointing a tag that people have already
+downloaded leaves them holding a build that no longer matches the source.
+
+### A signed APK without a release
+
+The Actions tab has **Run workflow** on `Release APK`, which takes a version
+string and produces a signed APK as a build artifact with no tag and no release.
+Useful for testing the signed build before committing to a version number.
 
 ### Building a signed release locally
 
