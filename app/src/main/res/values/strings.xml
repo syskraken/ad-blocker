@@ -7,6 +7,13 @@
     <string name="turn_on">Turn on</string>
     <string name="turn_off">Turn off</string>
 
+    <string name="add_tile">Add to Quick Settings</string>
+    <string name="tile_hint">A TripoleFlux tile can be added to the Quick Settings panel to toggle blocking without opening the app. Pull down the panel, tap the edit (pencil) button, then drag the tile in.</string>
+    <string name="tile_added">Tile added to Quick Settings</string>
+    <string name="tile_not_added">Tile was not added</string>
+    <string name="tile_on">Blocking</string>
+    <string name="tile_off">Off</string>
+
     <string name="stats_format">%1$d lookups · %2$d blocked (%3$.1f%%)</string>
 
     <string name="heading_lists">Blocklists</string>

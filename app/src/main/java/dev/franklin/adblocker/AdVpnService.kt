@@ -150,6 +150,8 @@ class AdVpnService : VpnService() {
             isDaemon = true
             start()
         }
+
+        QuickTileService.refresh(this)
     }
 
     private fun readLoop(pfd: ParcelFileDescriptor) {
@@ -265,6 +267,7 @@ class AdVpnService : VpnService() {
     }
 
     private fun stopTunnel() {
+        val wasRunning = isRunning
         isRunning = false
 
         reader?.interrupt()
@@ -286,6 +289,10 @@ class AdVpnService : VpnService() {
             // Already closed.
         }
         tunnel = null
+
+        // Covers the notification's Stop action and onRevoke(), neither of which
+        // the tile would otherwise hear about.
+        if (wasRunning) QuickTileService.refresh(this)
     }
 
     private fun startForegroundCompat() {

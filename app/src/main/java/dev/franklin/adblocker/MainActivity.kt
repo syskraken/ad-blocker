@@ -1,11 +1,14 @@
 package dev.franklin.adblocker
 
 import android.Manifest
+import android.app.StatusBarManager
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
@@ -100,6 +103,8 @@ class MainActivity : AppCompatActivity() {
 
         update.setOnClickListener { updateBlocklists() }
 
+        setUpTileButton()
+
         findViewById<Button>(R.id.save_allowlist).setOnClickListener {
             Prefs.setAllowlistText(this, allowlist.text.toString())
             BlockList.refreshUserLists(this)
@@ -183,6 +188,32 @@ class MainActivity : AppCompatActivity() {
                 toast(message)
                 render()
             }
+        }
+    }
+
+    /**
+     * Android 13 added a way to ask the system to offer the tile in a dialog.
+     * Below that the user has to add it by hand, so the button stays hidden and
+     * only the instructions are shown.
+     */
+    private fun setUpTileButton() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        val button = findViewById<Button>(R.id.add_tile)
+        button.visibility = Button.VISIBLE
+        button.setOnClickListener {
+            val statusBar = getSystemService(StatusBarManager::class.java) ?: return@setOnClickListener
+            statusBar.requestAddTileService(
+                ComponentName(this, QuickTileService::class.java),
+                getString(R.string.app_name),
+                Icon.createWithResource(this, R.drawable.ic_shield),
+                { runnable -> runnable.run() },
+                { result ->
+                    val added = result == StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ||
+                        result == StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED
+                    ui.post { toast(getString(if (added) R.string.tile_added else R.string.tile_not_added)) }
+                },
+            )
         }
     }
 
