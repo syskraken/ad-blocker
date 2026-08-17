@@ -119,6 +119,53 @@ accident.
 
 See "Cutting a release" below.
 
+## Changing the app icon
+
+Start from a **square** image, ideally 1024px or larger. It can have a
+transparent background or be drawn on a flat white one — the script handles
+both.
+
+```bash
+pip install pillow
+```
+
+```bash
+python tools/make_icons.py path/to/logo.png
+```
+
+That rewrites all ten files under `app/src/main/res/mipmap-*/` — five legacy
+sizes and five adaptive-icon foregrounds — and prints a background colour to
+paste into `app/src/main/res/values/colors.xml`.
+
+Then commit and push, and the next build carries the new icon.
+
+### What each file is for
+
+| Path | Used by |
+| --- | --- |
+| `mipmap-*/ic_launcher.png` | Android 7-8 launchers, and anything asking for a plain icon |
+| `mipmap-*/ic_launcher_foreground.png` | The moving layer of the adaptive icon on Android 8+ |
+| `mipmap-anydpi-v26/ic_launcher.xml` | Ties the foreground, background colour and monochrome layers together |
+| `values/colors.xml` → `launcher_background` | The adaptive icon's backdrop |
+| `drawable/ic_launcher_monochrome.xml` | Themed icons on Android 13+, tinted flat by the system |
+| `drawable/ic_shield.xml` | The status-bar notification icon |
+
+The last two are vectors and are not touched by the script. The monochrome and
+notification layers are rendered as flat silhouettes by Android, so a colour
+logo cannot be used for them — it would come out as a solid blob. Edit those by
+hand, or leave the shield.
+
+### Things that catch people out
+
+- **Detail near the edges gets clipped.** Launchers mask the adaptive icon to
+  roughly a circle. The script insets the artwork to about 59% of the canvas to
+  protect against this; lower `ART_RATIO` in the script if your logo still loses
+  its edges, raise it if it looks too small.
+- **Never put a file in `mipmap-anydpi/`.** That directory outranks every
+  density bucket, so anything there silently hides all the PNGs on Android 7-8.
+- **The launcher caches icons.** If the old one lingers after installing,
+  restart the phone or clear the launcher's cache — the build is fine.
+
 ## Cutting a release
 
 Once the four secrets exist, shipping a version is four commands and one click.
