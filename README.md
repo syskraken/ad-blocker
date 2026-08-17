@@ -119,6 +119,67 @@ accident.
 
 See "Cutting a release" below.
 
+## Locking the app down
+
+There are three levels, and only the last actually prevents removal.
+
+| | Stops a casual tap | Stops Android's VPN Disconnect | Stops uninstall |
+| --- | --- | --- | --- |
+| PIN | yes | no | no |
+| Device admin | yes | no | until deactivated in Settings |
+| Device owner | yes | **yes** | **yes** |
+
+The PIN and device admin need no setup beyond the buttons in the app. Neither
+can close the two holes that matter: Android always offers Disconnect in its own
+VPN dialog, and a device admin can be deactivated in Settings, after which
+uninstall works normally. That is deliberate on Android's part — an app is not
+permitted to trap the user.
+
+### Device owner provisioning
+
+Device owner removes both holes, but can only be set on a phone with **no
+accounts configured**. In practice that means a factory reset, and the
+provisioning has to happen before signing into anything.
+
+You need `adb` (`winget install Google.PlatformTools`) and a signed release APK.
+
+1. **Factory reset** the phone.
+2. On the setup wizard, **skip every account** — no Google account, no Samsung
+   or Oppo account, nothing. Adding one before step 5 makes provisioning fail.
+3. Enable **Developer options** (tap Build number seven times) and turn on
+   **USB debugging**.
+4. Install the app:
+
+```bash
+adb install tripoleflux-1.0.4.apk
+```
+
+5. Make it the device owner:
+
+```bash
+adb shell dpm set-device-owner dev.franklin.adblocker/.AdminReceiver
+```
+
+6. Now sign into accounts as normal, open TripoleFlux, and press
+   **Lock down this device**.
+
+### What lock-down applies
+
+- `setUninstallBlocked` — the app cannot be removed
+- `DISALLOW_CONFIG_VPN` — the user cannot reach VPN settings, which is what
+  removes Disconnect from the system dialog
+- `setAlwaysOnVpnPackage` with lockdown — the tunnel restarts automatically, and
+  traffic is blocked entirely whenever it is down
+
+Each is applied independently and the app reports which succeeded, because
+manufacturers honour these inconsistently.
+
+### Getting back out
+
+Press **Remove lock-down** in the app and enter the PIN. If the app is ever lost
+or the PIN forgotten, the only remaining route is another factory reset —
+device owner cannot be cleared from Settings. Worth being sure before starting.
+
 ## Changing the app icon
 
 Start from a **square** image, ideally 1024px or larger. It can have a

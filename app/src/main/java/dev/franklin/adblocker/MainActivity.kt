@@ -47,6 +47,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var checkUpdates: Button
     private lateinit var adminStatus: TextView
     private lateinit var toggleAdmin: Button
+    private lateinit var ownerStatus: TextView
+    private lateinit var toggleLockdown: Button
 
     /** Set once a check finds something newer, so the button can offer it directly. */
     private var availableUpdate: UpdateChecker.Release? = null
@@ -110,6 +112,9 @@ class MainActivity : AppCompatActivity() {
         adminStatus = findViewById(R.id.admin_status)
         toggleAdmin = findViewById(R.id.toggle_admin)
         toggleAdmin.setOnClickListener { toggleUninstallProtection() }
+        ownerStatus = findViewById(R.id.owner_status)
+        toggleLockdown = findViewById(R.id.toggle_lockdown)
+        toggleLockdown.setOnClickListener { toggleLockDown() }
 
         update.setOnClickListener { updateBlocklists() }
 
@@ -350,6 +355,52 @@ class MainActivity : AppCompatActivity() {
         adminStatus.text = getString(if (active) R.string.admin_on else R.string.admin_off)
         toggleAdmin.text =
             getString(if (active) R.string.remove_protection else R.string.protect_uninstall)
+
+        val owner = DeviceOwner.isDeviceOwner(this)
+        val locked = owner && DeviceOwner.isLockedDown(this)
+
+        toggleLockdown.visibility = if (owner) Button.VISIBLE else Button.GONE
+        toggleLockdown.text =
+            getString(if (locked) R.string.remove_lockdown else R.string.lock_down)
+        ownerStatus.text = getString(
+            when {
+                locked -> R.string.owner_locked
+                owner -> R.string.owner_available
+                else -> R.string.owner_absent
+            },
+        )
+    }
+
+    /** Applying is free; lifting the lock-down needs the PIN, like stopping does. */
+    private fun toggleLockDown() {
+        if (!DeviceOwner.isLockedDown(this)) {
+            report(DeviceOwner.lockDown(this))
+            renderAdminState()
+            return
+        }
+
+        val input = pinField()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pin_prompt_title)
+            .setView(wrap(input))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                if (!Prefs.checkPin(this, input.text.toString())) {
+                    toast(getString(R.string.pin_wrong))
+                    return@setPositiveButton
+                }
+                report(DeviceOwner.release(this))
+                renderAdminState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** Shows the per-policy outcome: OEMs honour these inconsistently. */
+    private fun report(notes: List<String>) {
+        AlertDialog.Builder(this)
+            .setMessage(notes.joinToString("\n"))
+            .setPositiveButton(R.string.close, null)
+            .show()
     }
 
     private fun currentVersion(): String = try {

@@ -52,6 +52,12 @@
     <string name="protection_removed">Uninstall protection removed</string>
     <string name="admin_unavailable">This device does not allow device administrators</string>
 
+    <string name="owner_absent">Full lock-down unavailable — this phone is not provisioned as a managed device. Android will always allow Disconnect in its own VPN dialog otherwise. See the README for setup, which requires a factory reset.</string>
+    <string name="owner_available">Managed device. Full lock-down is available.</string>
+    <string name="owner_locked">Locked down: uninstall blocked, VPN settings locked, always-on enabled.</string>
+    <string name="lock_down">Lock down this device</string>
+    <string name="remove_lockdown">Remove lock-down</string>
+
     <string name="heading_updates">App updates</string>
     <string name="version_format">Version %1$s</string>
     <string name="check_updates">Check for updates</string>
