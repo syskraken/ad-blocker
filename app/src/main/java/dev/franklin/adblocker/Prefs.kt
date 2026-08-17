@@ -6,6 +6,7 @@ object Prefs {
 
     private const val FILE = "adblocker"
     private const val KEY_ALLOWLIST = "allowlist"
+    private const val KEY_BLOCKLIST = "custom_blocklist"
     private const val KEY_LAST_UPDATE = "last_update"
 
     private fun of(context: Context) =
@@ -19,9 +20,20 @@ object Prefs {
         of(context).edit().putString(KEY_ALLOWLIST, text).apply()
     }
 
-    fun allowlist(context: Context): Set<String> =
-        allowlistText(context)
-            .split('\n', ',', ' ')
+    fun allowlist(context: Context): Set<String> = parseDomains(allowlistText(context))
+
+    fun blocklistText(context: Context): String =
+        of(context).getString(KEY_BLOCKLIST, "") ?: ""
+
+    fun setBlocklistText(context: Context, text: String) {
+        of(context).edit().putString(KEY_BLOCKLIST, text).apply()
+    }
+
+    fun blocklist(context: Context): Set<String> = parseDomains(blocklistText(context))
+
+    /** Tolerates newlines, commas, or spaces, and ignores comment lines. */
+    private fun parseDomains(text: String): Set<String> =
+        text.split('\n', ',', ' ')
             .map { it.trim().trimEnd('.').lowercase() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }
             .toSet()

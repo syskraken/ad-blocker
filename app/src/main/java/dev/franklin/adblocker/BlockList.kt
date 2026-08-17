@@ -38,9 +38,15 @@ object BlockList {
 
     @Volatile private var blocked: Set<String> = emptySet()
     @Volatile private var allowed: Set<String> = emptySet()
+    @Volatile private var custom: Set<String> = emptySet()
     @Volatile private var loaded = false
 
     fun size(): Int = blocked.size
+
+    fun customSize(): Int = custom.size
+
+    /** Exact membership, so the UI can avoid appending a duplicate allowlist line. */
+    fun isAllowed(host: String): Boolean = allowed.contains(host.trimEnd('.').lowercase())
 
     fun isLoaded(): Boolean = loaded
 
@@ -64,31 +70,39 @@ object BlockList {
 
         blocked = domains
         allowed = Prefs.allowlist(context)
+        custom = Prefs.blocklist(context)
         loaded = true
     }
 
-    /** Re-reads the allowlist without rebuilding the (much larger) block set. */
+    /**
+     * Re-reads the user's own lists without rebuilding the (much larger) set
+     * parsed from files. Both are volatile, so an edit takes effect on the very
+     * next lookup even while the tunnel is running.
+     */
     @Synchronized
-    fun refreshAllowlist(context: Context) {
+    fun refreshUserLists(context: Context) {
         allowed = Prefs.allowlist(context)
+        custom = Prefs.blocklist(context)
     }
 
     /**
      * A domain is blocked when it, or any parent of it, is listed. Checking the
      * allowlist at each level first means allowing `ads.example.com` still lets
-     * a broader block on `example.com` stand for its siblings.
+     * a broader block on `example.com` stand for its siblings — and it means a
+     * user's allowlist always beats their own custom blocklist.
      */
     fun isBlocked(host: String): Boolean {
         val name = host.trimEnd('.').lowercase()
         if (name.isEmpty()) return false
 
         val block = blocked
+        val extra = custom
         val allow = allowed
         var i = 0
         while (true) {
             val candidate = if (i == 0) name else name.substring(i)
             if (allow.contains(candidate)) return false
-            if (block.contains(candidate)) return true
+            if (block.contains(candidate) || extra.contains(candidate)) return true
             val dot = name.indexOf('.', i)
             if (dot < 0) return false
             i = dot + 1

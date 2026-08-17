@@ -65,6 +65,40 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:text="@string/heading_blocklist"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/blocklist_help"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/blocklist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="top|start"
+            android:hint="@string/blocklist_hint"
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine|textNoSuggestions"
+            android:minLines="3"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/save_blocklist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/save_blocklist" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
             android:text="@string/heading_allowlist"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -104,12 +138,26 @@
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/recent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/recent_help"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/blocked_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/nothing_blocked_yet"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/blocked_list"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="24dp"
-            android:fontFamily="monospace"
-            android:textSize="13sp" />
+            android:orientation="vertical" />
     </LinearLayout>
 </ScrollView>

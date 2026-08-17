@@ -17,6 +17,12 @@
     <string name="update_done">Blocklists updated: %1$d domains</string>
     <string name="update_failed">Update failed: %1$s</string>
 
+    <string name="heading_blocklist">Custom blocklist</string>
+    <string name="blocklist_help">Extra domains to block, on top of the downloaded lists. Blocking a domain also blocks everything under it. One per line.</string>
+    <string name="blocklist_hint">ads.example.com</string>
+    <string name="save_blocklist">Save blocklist</string>
+    <string name="blocklist_saved">Custom blocklist saved: %1$d domains</string>
+
     <string name="heading_allowlist">Allowlist</string>
     <string name="allowlist_help">Domains listed here are never blocked. Use this when an app breaks. One per line.</string>
     <string name="allowlist_hint">example.com</string>
@@ -24,7 +30,15 @@
     <string name="allowlist_saved">Allowlist saved</string>
 
     <string name="heading_recent">Recently blocked</string>
+    <string name="recent_help">Tap a domain to see the details or allow it.</string>
     <string name="nothing_blocked_yet">Nothing blocked yet.</string>
+    <string name="blocked_detail">blocked %1$d× · %2$s</string>
+    <string name="blocked_dialog_body">Blocked %1$d time(s).\nLast seen %2$s.\n\nAllowing this domain lets every app reach it again. Do that if an app stopped working.</string>
+    <string name="allow_domain">Allow</string>
+    <string name="copy_domain">Copy</string>
+    <string name="close">Close</string>
+    <string name="domain_allowed">%1$s added to the allowlist</string>
+    <string name="domain_copied">Copied %1$s</string>
 
     <string name="permission_declined">VPN permission is required to filter DNS.</string>
 

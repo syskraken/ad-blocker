@@ -1,6 +1,9 @@
 package dev.franklin.adblocker
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.VpnService
@@ -9,11 +12,14 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.format.DateUtils
+import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
@@ -23,13 +29,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var stats: TextView
     private lateinit var listInfo: TextView
-    private lateinit var recent: TextView
+    private lateinit var blockedList: LinearLayout
+    private lateinit var blockedEmpty: TextView
     private lateinit var allowlist: EditText
+    private lateinit var blocklist: EditText
     private lateinit var toggle: Button
     private lateinit var update: Button
 
     private val ui = Handler(Looper.getMainLooper())
     private val background = Executors.newSingleThreadExecutor()
+
+    /** Rebuilding 200 rows every second would be wasteful; only do it on change. */
+    private var renderedRevision = -1L
 
     private val refresh = object : Runnable {
         override fun run() {
@@ -56,12 +67,15 @@ class MainActivity : AppCompatActivity() {
         status = findViewById(R.id.status)
         stats = findViewById(R.id.stats)
         listInfo = findViewById(R.id.list_info)
-        recent = findViewById(R.id.recent)
+        blockedList = findViewById(R.id.blocked_list)
+        blockedEmpty = findViewById(R.id.blocked_empty)
         allowlist = findViewById(R.id.allowlist)
+        blocklist = findViewById(R.id.blocklist)
         toggle = findViewById(R.id.toggle)
         update = findViewById(R.id.update)
 
         allowlist.setText(Prefs.allowlistText(this))
+        blocklist.setText(Prefs.blocklistText(this))
 
         toggle.setOnClickListener {
             if (AdVpnService.isRunning) stopVpn() else requestVpn()
@@ -71,8 +85,14 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.save_allowlist).setOnClickListener {
             Prefs.setAllowlistText(this, allowlist.text.toString())
-            BlockList.refreshAllowlist(this)
+            BlockList.refreshUserLists(this)
             toast(getString(R.string.allowlist_saved))
+        }
+
+        findViewById<Button>(R.id.save_blocklist).setOnClickListener {
+            Prefs.setBlocklistText(this, blocklist.text.toString())
+            BlockList.refreshUserLists(this)
+            toast(getString(R.string.blocklist_saved, BlockList.customSize()))
         }
 
         // Loading the bundled list off the main thread keeps first launch smooth.
@@ -86,6 +106,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Force a rebuild: entries may have been evicted or added while away.
+        renderedRevision = -1L
         ui.post(refresh)
     }
 
@@ -157,19 +179,78 @@ class MainActivity : AppCompatActivity() {
         stats.text = getString(R.string.stats_format, queries, blocked, percent)
 
         val last = Prefs.lastUpdate(this)
-        val when_ = if (last == 0L) {
+        val updatedWhen = if (last == 0L) {
             getString(R.string.never_updated)
         } else {
             DateUtils.getRelativeTimeSpanString(last, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
         }
-        listInfo.text = getString(R.string.list_info_format, BlockList.size(), when_)
+        listInfo.text = getString(R.string.list_info_format, BlockList.size(), updatedWhen)
 
-        val blockedHosts = AdVpnService.recentlyBlocked()
-        recent.text = if (blockedHosts.isEmpty()) {
-            getString(R.string.nothing_blocked_yet)
-        } else {
-            blockedHosts.joinToString("\n")
+        val revision = BlockLog.revision()
+        if (revision != renderedRevision) {
+            renderedRevision = revision
+            rebuildBlockedList()
         }
+    }
+
+    private fun rebuildBlockedList() {
+        val entries = BlockLog.snapshot(100)
+        blockedEmpty.visibility = if (entries.isEmpty()) TextView.VISIBLE else TextView.GONE
+
+        blockedList.removeAllViews()
+        val inflater = LayoutInflater.from(this)
+        val now = System.currentTimeMillis()
+
+        for (entry in entries) {
+            val row = inflater.inflate(R.layout.item_blocked, blockedList, false)
+            row.findViewById<TextView>(R.id.domain).text = entry.host
+            row.findViewById<TextView>(R.id.detail).text =
+                getString(R.string.blocked_detail, entry.count, relativeTime(entry.lastSeen, now))
+            row.setOnClickListener { showBlockedDomain(entry) }
+            blockedList.addView(row)
+        }
+    }
+
+    private fun relativeTime(at: Long, now: Long): CharSequence =
+        DateUtils.getRelativeTimeSpanString(at, now, DateUtils.SECOND_IN_MILLIS)
+
+    private fun showBlockedDomain(entry: BlockLog.Entry) {
+        val body = getString(
+            R.string.blocked_dialog_body,
+            entry.count,
+            relativeTime(entry.lastSeen, System.currentTimeMillis()),
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle(entry.host)
+            .setMessage(body)
+            .setPositiveButton(R.string.allow_domain) { _, _ -> allowDomain(entry.host) }
+            .setNeutralButton(R.string.copy_domain) { _, _ -> copyDomain(entry.host) }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    /** Appends to the allowlist, leaving whatever the user already typed intact. */
+    private fun allowDomain(host: String) {
+        if (BlockList.isAllowed(host)) {
+            toast(getString(R.string.domain_allowed, host))
+            return
+        }
+
+        val existing = Prefs.allowlistText(this).trimEnd()
+        val updated = if (existing.isEmpty()) host else "$existing\n$host"
+
+        Prefs.setAllowlistText(this, updated)
+        BlockList.refreshUserLists(this)
+        allowlist.setText(updated)
+
+        toast(getString(R.string.domain_allowed, host))
+    }
+
+    private fun copyDomain(host: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("domain", host))
+        toast(getString(R.string.domain_copied, host))
     }
 
     private fun toast(message: String) {

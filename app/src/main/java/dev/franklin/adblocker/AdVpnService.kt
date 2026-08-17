@@ -55,19 +55,6 @@ class AdVpnService : VpnService() {
 
         val queryCount = AtomicLong()
         val blockedCount = AtomicLong()
-
-        private val recent = ArrayDeque<String>()
-
-        fun recentlyBlocked(): List<String> = synchronized(recent) { recent.toList() }
-
-        private fun remember(host: String) {
-            synchronized(recent) {
-                recent.addFirst(host)
-                while (recent.size > 50) recent.removeLast()
-            }
-        }
-
-        private fun clearRecent() = synchronized(recent) { recent.clear() }
     }
 
     private var tunnel: ParcelFileDescriptor? = null
@@ -104,7 +91,7 @@ class AdVpnService : VpnService() {
 
     private fun startTunnel() {
         if (!BlockList.isLoaded()) BlockList.load(applicationContext)
-        BlockList.refreshAllowlist(applicationContext)
+        BlockList.refreshUserLists(applicationContext)
 
         // Read the real resolvers before we become the active network.
         upstreams = discoverUpstreams()
@@ -152,7 +139,7 @@ class AdVpnService : VpnService() {
 
         queryCount.set(0)
         blockedCount.set(0)
-        clearRecent()
+        BlockLog.clear()
 
         tunnel = pfd
         output = FileOutputStream(pfd.fileDescriptor)
@@ -201,7 +188,7 @@ class AdVpnService : VpnService() {
         val query = Dns.parseQuery(payload, payload.size)
         if (query != null && BlockList.isBlocked(query.name)) {
             blockedCount.incrementAndGet()
-            remember(query.name)
+            BlockLog.record(query.name)
             write(Ip.buildUdpReply(packet, Dns.buildBlockedResponse(payload, query)))
             return
         }
