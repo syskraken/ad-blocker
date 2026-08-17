@@ -25,6 +25,22 @@
             android:text="@string/status_off"
             android:textSize="16sp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/network_admin"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:alpha="0.75"
+            android:lineSpacingExtra="2dp"
+            android:text="@string/app_description"
+            android:textSize="13sp" />
+
         <Button
             android:id="@+id/toggle"
             android:layout_width="match_parent"
