@@ -5,5 +5,5 @@
 
     <!-- Sampled from the logo artwork so the adaptive icon's background matches
          the backdrop baked into the foreground image. -->
-    <color name="launcher_background">#122138</color>
+    <color name="launcher_background">#2F77A6</color>
 </resources>

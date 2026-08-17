@@ -50,9 +50,15 @@ def load(path):
     box = mono.getbbox()
     art = image.crop(box) if box else image
 
-    side = max(art.size)
-    square = Image.new("RGB", (side, side), (255, 255, 255))
-    square.paste(art, ((side - art.size[0]) // 2, (side - art.size[1]) // 2))
+    # Centre-crop to a square rather than padding out to one. Padding a
+    # full-bleed image means inventing pixels, and stretching the edge row to
+    # fill smears whatever happens to sit on that edge into a streak.
+    width, height = art.size
+    side = min(width, height)
+    square = art.crop(
+        ((width - side) // 2, (height - side) // 2,
+         (width - side) // 2 + side, (height - side) // 2 + side)
+    )
 
     supersample = 4
     mask = Image.new("L", (side * supersample, side * supersample), 0)
