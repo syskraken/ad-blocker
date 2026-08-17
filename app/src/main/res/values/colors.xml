@@ -2,6 +2,8 @@
 <resources>
     <color name="status_on">#2E7D32</color>
     <color name="status_off">#9E9E9E</color>
-    <color name="launcher_background">#1B2430</color>
-    <color name="launcher_foreground">#4CAF50</color>
+
+    <!-- Sampled from the logo artwork so the adaptive icon's background matches
+         the backdrop baked into the foreground image. -->
+    <color name="launcher_background">#122138</color>
 </resources>
