@@ -58,6 +58,10 @@
     <string name="lock_down">Lock down this device</string>
     <string name="remove_lockdown">Remove lock-down</string>
 
+    <string name="always_on_help">Without a managed device, the strongest option is Android\'s own Always-on VPN. Turn on "Always-on VPN" and "Block connections without VPN" for TripoleFlux: blocking then restarts by itself after a reboot or if the app is killed, and all traffic is blocked whenever it is off.</string>
+    <string name="open_vpn_settings">Open Android VPN settings</string>
+    <string name="vpn_settings_unavailable">Could not open VPN settings on this device</string>
+
     <string name="heading_updates">App updates</string>
     <string name="version_format">Version %1$s</string>
     <string name="check_updates">Check for updates</string>

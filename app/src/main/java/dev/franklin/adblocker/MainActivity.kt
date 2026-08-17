@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.text.InputType
 import android.text.format.DateUtils
 import android.view.LayoutInflater
@@ -115,6 +116,16 @@ class MainActivity : AppCompatActivity() {
         ownerStatus = findViewById(R.id.owner_status)
         toggleLockdown = findViewById(R.id.toggle_lockdown)
         toggleLockdown.setOnClickListener { toggleLockDown() }
+
+        findViewById<Button>(R.id.open_vpn_settings).setOnClickListener {
+            // Always-on lives in Android's own VPN screen; an app cannot set it
+            // for itself without being device owner.
+            try {
+                startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
+            } catch (e: Exception) {
+                toast(getString(R.string.vpn_settings_unavailable))
+            }
+        }
 
         update.setOnClickListener { updateBlocklists() }
 
