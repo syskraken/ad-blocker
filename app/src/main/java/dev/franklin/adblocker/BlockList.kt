@@ -29,13 +29,19 @@ object BlockList {
         Source(
             "stevenblack",
             "StevenBlack unified",
-            "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+            listOf(
+                "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+                "https://cdn.jsdelivr.net/gh/StevenBlack/hosts@master/hosts",
+            ),
             Category.ADS,
         ),
         Source(
             "adaway",
             "AdAway",
-            "https://adaway.org/hosts.txt",
+            listOf(
+                "https://adaway.org/hosts.txt",
+                "https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt",
+            ),
             Category.ADS,
         ),
         // Deliberately the curated ~61k-entry list rather than one of the
@@ -45,12 +51,25 @@ object BlockList {
         Source(
             "sinfonietta-adult",
             "Sinfonietta adult",
-            "https://raw.githubusercontent.com/Sinfonietta/hostfiles/master/pornography-hosts",
+            listOf(
+                "https://raw.githubusercontent.com/Sinfonietta/hostfiles/master/pornography-hosts",
+                "https://cdn.jsdelivr.net/gh/Sinfonietta/hostfiles@master/pornography-hosts",
+            ),
             Category.ADULT,
         ),
     )
 
-    class Source(val id: String, val label: String, val url: String, val category: Category)
+    /**
+     * [urls] are tried in order. Mirrors matter because some carriers and
+     * networks block raw.githubusercontent.com outright, which otherwise looks
+     * to the user like the whole feature is broken.
+     */
+    class Source(
+        val id: String,
+        val label: String,
+        val urls: List<String>,
+        val category: Category,
+    )
 
     private const val LIST_DIR = "lists"
     private const val ASSET = "default_blocklist.txt"
@@ -156,6 +175,8 @@ object BlockList {
         }
 
         var succeeded = 0
+        val failures = mutableListOf<String>()
+
         for (source in SOURCES) {
             val target = File(dir, "list_${source.id}.txt")
             val enabled = source.category == Category.ADS || adultEnabled
@@ -166,26 +187,59 @@ object BlockList {
             }
 
             val temp = File(dir, "list_${source.id}.tmp")
-            try {
-                download(source.url, temp)
-                if (temp.length() > 0) {
-                    if (target.exists()) target.delete()
-                    if (temp.renameTo(target)) succeeded++
+            var lastError: String? = null
+            var downloaded = false
+
+            for (url in source.urls) {
+                try {
+                    download(url, temp)
+                    if (temp.length() > 0) {
+                        downloaded = true
+                        break
+                    }
+                    lastError = "empty response"
+                } catch (e: Exception) {
+                    lastError = describe(e)
                 }
-            } catch (e: Exception) {
-                // Keep whatever copy of this list is already on disk.
-            } finally {
-                if (temp.exists()) temp.delete()
             }
+
+            if (downloaded) {
+                if (target.exists()) target.delete()
+                if (temp.renameTo(target)) {
+                    succeeded++
+                } else {
+                    failures += "${source.label}: could not save to storage"
+                }
+            } else {
+                // Keep whatever copy of this list is already on disk.
+                failures += "${source.label}: ${lastError ?: "unknown error"}"
+            }
+
+            if (temp.exists()) temp.delete()
         }
 
         if (succeeded == 0 && dir.listFiles().isNullOrEmpty()) {
-            throw java.io.IOException("Could not download any blocklist")
+            // Report what actually went wrong; a bare "download failed" leaves
+            // nobody able to tell a blocked domain from a dead network.
+            throw java.io.IOException(failures.joinToString("; ").ifEmpty { "no sources enabled" })
         }
 
         load(context)
         Prefs.setLastUpdate(context, System.currentTimeMillis())
         return blocked.size
+    }
+
+    /** Turns an exception into something a user can act on. */
+    private fun describe(e: Exception): String = when (e) {
+        is java.net.UnknownHostException ->
+            "cannot resolve ${e.message} (no internet, or DNS is blocked)"
+        is java.net.SocketTimeoutException ->
+            "timed out — connection too slow or blocked"
+        is javax.net.ssl.SSLException ->
+            "secure connection failed (${e.message ?: "SSL error"})"
+        is java.net.ConnectException ->
+            "cannot connect (${e.message ?: "refused"})"
+        else -> e.message ?: e.javaClass.simpleName
     }
 
     private fun download(url: String, into: File) {
