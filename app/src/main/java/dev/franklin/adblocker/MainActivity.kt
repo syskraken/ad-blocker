@@ -14,6 +14,7 @@ import android.os.Looper
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var blocklist: EditText
     private lateinit var toggle: Button
     private lateinit var update: Button
+    private lateinit var adultFilter: CheckBox
 
     private val ui = Handler(Looper.getMainLooper())
     private val background = Executors.newSingleThreadExecutor()
@@ -73,6 +75,15 @@ class MainActivity : AppCompatActivity() {
         blocklist = findViewById(R.id.blocklist)
         toggle = findViewById(R.id.toggle)
         update = findViewById(R.id.update)
+        adultFilter = findViewById(R.id.adult_filter)
+
+        adultFilter.isChecked = Prefs.adultFilterEnabled(this)
+        adultFilter.setOnCheckedChangeListener { _, checked ->
+            Prefs.setAdultFilterEnabled(this, checked)
+            // Enabling downloads the extra lists; disabling deletes them. Either
+            // way the change is only real once update() has run.
+            updateBlocklists()
+        }
 
         allowlist.setText(Prefs.allowlistText(this))
         blocklist.setText(Prefs.blocklistText(this))

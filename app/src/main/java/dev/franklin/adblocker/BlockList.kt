@@ -17,13 +17,40 @@ import java.util.zip.GZIPInputStream
  */
 object BlockList {
 
-    /** Downloadable sources, in hosts-file or plain-domain format. */
+    enum class Category { ADS, ADULT }
+
+    /**
+     * Downloadable sources, in hosts-file or plain-domain format.
+     *
+     * The id becomes the on-disk filename, so it must stay stable across
+     * releases — renaming one orphans the file a previous version wrote.
+     */
     val SOURCES = listOf(
-        Source("StevenBlack unified", "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"),
-        Source("AdAway", "https://adaway.org/hosts.txt"),
+        Source(
+            "stevenblack",
+            "StevenBlack unified",
+            "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+            Category.ADS,
+        ),
+        Source(
+            "adaway",
+            "AdAway",
+            "https://adaway.org/hosts.txt",
+            Category.ADS,
+        ),
+        // Deliberately the curated ~61k-entry list rather than one of the
+        // million-entry aggregates: domains are held as strings in memory, and
+        // a million of them costs roughly 100 MB of heap — enough to be killed
+        // outright on a mid-range device.
+        Source(
+            "sinfonietta-adult",
+            "Sinfonietta adult",
+            "https://raw.githubusercontent.com/Sinfonietta/hostfiles/master/pornography-hosts",
+            Category.ADULT,
+        ),
     )
 
-    class Source(val label: String, val url: String)
+    class Source(val id: String, val label: String, val url: String, val category: Category)
 
     private const val LIST_DIR = "lists"
     private const val ASSET = "default_blocklist.txt"
@@ -109,16 +136,36 @@ object BlockList {
         }
     }
 
-    /** Downloads every source. Returns the resulting domain count. Blocking call. */
+    /**
+     * Downloads every enabled source and deletes the files of disabled ones, so
+     * turning a category off actually unblocks it rather than leaving a stale
+     * copy on disk. Returns the resulting domain count. Blocking call.
+     */
     @Synchronized
     fun update(context: Context): Int {
         val dir = listDir(context)
         dir.mkdirs()
 
+        val adultEnabled = Prefs.adultFilterEnabled(context)
+        val known = SOURCES.map { "list_${it.id}.txt" }.toSet()
+
+        // Older versions named files by list index; drop anything unrecognised
+        // so a renamed or removed source cannot linger and keep applying.
+        dir.listFiles()?.forEach { file ->
+            if (file.name !in known) file.delete()
+        }
+
         var succeeded = 0
-        SOURCES.forEachIndexed { index, source ->
-            val target = File(dir, "list_$index.txt")
-            val temp = File(dir, "list_$index.tmp")
+        for (source in SOURCES) {
+            val target = File(dir, "list_${source.id}.txt")
+            val enabled = source.category == Category.ADS || adultEnabled
+
+            if (!enabled) {
+                target.delete()
+                continue
+            }
+
+            val temp = File(dir, "list_${source.id}.tmp")
             try {
                 download(source.url, temp)
                 if (temp.length() > 0) {

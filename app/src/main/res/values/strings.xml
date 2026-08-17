@@ -12,6 +12,9 @@
     <string name="heading_lists">Blocklists</string>
     <string name="list_info_format">%1$d domains · updated %2$s</string>
     <string name="never_updated">never (using the bundled starter list)</string>
+    <string name="adult_filter_label">Also block adult content</string>
+    <string name="adult_filter_help">Adds community lists of adult sites. No list is complete — new domains appear constantly — and legitimate sites are occasionally caught by mistake. Use the allowlist to fix those.</string>
+
     <string name="update_lists">Update blocklists</string>
     <string name="updating">Downloading…</string>
     <string name="update_done">Blocklists updated: %1$d domains</string>

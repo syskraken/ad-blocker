@@ -7,6 +7,7 @@ object Prefs {
     private const val FILE = "adblocker"
     private const val KEY_ALLOWLIST = "allowlist"
     private const val KEY_BLOCKLIST = "custom_blocklist"
+    private const val KEY_ADULT_FILTER = "adult_filter"
     private const val KEY_LAST_UPDATE = "last_update"
 
     private fun of(context: Context) =
@@ -37,6 +38,13 @@ object Prefs {
             .map { it.trim().trimEnd('.').lowercase() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }
             .toSet()
+
+    fun adultFilterEnabled(context: Context): Boolean =
+        of(context).getBoolean(KEY_ADULT_FILTER, false)
+
+    fun setAdultFilterEnabled(context: Context, enabled: Boolean) {
+        of(context).edit().putBoolean(KEY_ADULT_FILTER, enabled).apply()
+    }
 
     fun lastUpdate(context: Context): Long = of(context).getLong(KEY_LAST_UPDATE, 0L)
 
