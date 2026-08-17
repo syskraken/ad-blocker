@@ -18,7 +18,12 @@ object UpdateChecker {
     private const val LATEST_RELEASE =
         "https://api.github.com/repos/syskraken/ad-blocker/releases/latest"
 
-    class Release(val version: String, val pageUrl: String, val apkUrl: String?)
+    class Release(
+        val version: String,
+        val pageUrl: String,
+        val apkUrl: String?,
+        val sha256Url: String? = null,
+    )
 
     sealed class Result {
         object UpToDate : Result()
@@ -60,13 +65,18 @@ object UpdateChecker {
             ?: return Result.Failed("release has no tag")
 
         var apkUrl: String? = null
+        var sha256Url: String? = null
         val assets = json.optJSONArray("assets")
         if (assets != null) {
             for (i in 0 until assets.length()) {
                 val asset = assets.optJSONObject(i) ?: continue
-                if (asset.optString("name").endsWith(".apk", ignoreCase = true)) {
-                    apkUrl = asset.optString("browser_download_url").takeIf { it.isNotBlank() }
-                    break
+                val name = asset.optString("name")
+                val url = asset.optString("browser_download_url").takeIf { it.isNotBlank() }
+                when {
+                    // Order matters: ".apk.sha256" also ends with neither, so test
+                    // the checksum suffix before the APK one.
+                    name.endsWith(".sha256", ignoreCase = true) -> sha256Url = url
+                    name.endsWith(".apk", ignoreCase = true) && apkUrl == null -> apkUrl = url
                 }
             }
         }
@@ -75,6 +85,7 @@ object UpdateChecker {
             version = normalise(tag),
             pageUrl = json.optString("html_url"),
             apkUrl = apkUrl,
+            sha256Url = sha256Url,
         )
 
         return if (compareVersions(release.version, currentVersion) > 0) {

@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Set once a check finds something newer, so the button can offer it directly. */
     private var availableUpdate: UpdateChecker.Release? = null
+    private var renderedUpdateRevision = -1L
 
     private val ui = Handler(Looper.getMainLooper())
     private val background = Executors.newSingleThreadExecutor()
@@ -248,7 +249,10 @@ class MainActivity : AppCompatActivity() {
             is UpdateChecker.Result.Available -> {
                 availableUpdate = result.release
                 versionInfo.text = getString(R.string.update_available, result.release.version)
-                checkUpdates.text = getString(R.string.download_update, result.release.version)
+                checkUpdates.text = getString(
+                    if (result.release.apkUrl != null) R.string.install_update else R.string.download_update,
+                    result.release.version,
+                )
             }
 
             is UpdateChecker.Result.UpToDate -> {
@@ -270,14 +274,89 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Hands the APK to the browser: installing it here would need REQUEST_INSTALL_PACKAGES. */
+    /**
+     * Installs in place when the release carries an APK, falling back to the
+     * browser when it does not, or when the user declines the install permission.
+     */
     private fun openDownload(release: UpdateChecker.Release) {
-        val target = release.apkUrl ?: release.pageUrl
-        if (target.isBlank()) return
+        if (release.apkUrl == null) {
+            openInBrowser(release.pageUrl)
+            return
+        }
+
+        if (!Updater.canInstall(this)) {
+            promptForInstallPermission(release)
+            return
+        }
+
+        checkUpdates.isEnabled = false
+        background.execute { Updater.downloadAndInstall(applicationContext, release) }
+    }
+
+    /**
+     * Android will not let an app install anything until the user turns this on
+     * per-app, and the setting lives in a screen only they can act on.
+     */
+    private fun promptForInstallPermission(release: UpdateChecker.Release) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.allow_installs_title)
+            .setMessage(R.string.allow_installs_body)
+            .setPositiveButton(R.string.open_settings) { _, _ ->
+                try {
+                    startActivity(Updater.unknownSourcesSettings(this))
+                } catch (e: Exception) {
+                    openInBrowser(release.pageUrl)
+                }
+            }
+            .setNeutralButton(R.string.use_browser) { _, _ ->
+                openInBrowser(release.apkUrl ?: release.pageUrl)
+            }
+            .setNegativeButton(R.string.close, null)
+            .show()
+    }
+
+    private fun openInBrowser(url: String) {
+        if (url.isBlank()) return
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (e: Exception) {
             toast(getString(R.string.no_browser))
+        }
+    }
+
+    /** Reflects download and install progress into the update section. */
+    private fun renderUpdateProgress() {
+        val revision = Updater.revision()
+        if (revision == renderedUpdateRevision) return
+        renderedUpdateRevision = revision
+
+        val release = availableUpdate
+        when (val state = Updater.status) {
+            is Updater.Status.Idle -> Unit
+
+            is Updater.Status.Downloading ->
+                checkUpdates.text = getString(R.string.downloading_percent, state.percent)
+
+            is Updater.Status.Verifying ->
+                checkUpdates.text = getString(R.string.verifying_download)
+
+            is Updater.Status.Installing ->
+                checkUpdates.text = getString(R.string.starting_install)
+
+            is Updater.Status.Success -> {
+                checkUpdates.isEnabled = true
+                versionInfo.text = getString(R.string.install_succeeded)
+                checkUpdates.text = getString(R.string.check_updates)
+            }
+
+            is Updater.Status.Failed -> {
+                checkUpdates.isEnabled = true
+                checkUpdates.text = release?.let {
+                    getString(R.string.install_update, it.version)
+                } ?: getString(R.string.check_updates)
+                toast(getString(R.string.install_failed, state.reason))
+                Updater.reset()
+            }
         }
     }
 
@@ -315,6 +394,8 @@ class MainActivity : AppCompatActivity() {
             renderedRevision = revision
             rebuildBlockedList()
         }
+
+        renderUpdateProgress()
     }
 
     private fun rebuildBlockedList() {

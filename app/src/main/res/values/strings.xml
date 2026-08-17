@@ -37,6 +37,16 @@
     <string name="no_releases">No releases published yet</string>
     <string name="update_check_failed">Update check failed: %1$s</string>
     <string name="no_browser">No browser available to open the download</string>
+    <string name="install_update">Install %1$s</string>
+    <string name="downloading_percent">Downloading… %1$d%%</string>
+    <string name="verifying_download">Verifying download…</string>
+    <string name="starting_install">Starting install…</string>
+    <string name="install_succeeded">Updated. Reopen the app to use the new version.</string>
+    <string name="install_failed">Install failed: %1$s</string>
+    <string name="allow_installs_title">Allow installing updates</string>
+    <string name="allow_installs_body">Android needs permission for TripoleFlux to install its own updates. This opens the system setting — turn on "Allow from this source", then press Install again.\n\nIf you would rather not grant it, the release page can be opened in a browser instead.</string>
+    <string name="open_settings">Open setting</string>
+    <string name="use_browser">Use browser</string>
 
     <string name="heading_blocklist">Custom blocklist</string>
     <string name="blocklist_help">Extra domains to block, on top of the downloaded lists. Blocking a domain also blocks everything under it. One per line.</string>
