@@ -1,4 +1,4 @@
-# Ad Blocker
+# TripoleFlux
 
 A device-wide ad and tracker blocker for Android. No root, no accounts, nothing
 leaves your phone.
@@ -46,12 +46,12 @@ The project builds in CI — you do not need Android Studio or an SDK locally.
 1. Create a new GitHub repository and push this directory to it:
 
 ```bash
-git init && git add -A && git commit -m "Initial commit" && git branch -M main && git remote add origin https://github.com/YOUR-USERNAME/ad-blocker.git && git push -u origin main
+git remote add origin https://github.com/syskraken/ad-blocker.git && git push -u origin main
 ```
 
 2. Open the repo's **Actions** tab. The `Build APK` workflow starts on push.
 3. When it finishes (~3 minutes), open the run and download the
-   **ad-blocker-apk** artifact from the Artifacts section.
+   **tripoleflux-apk** artifact from the Artifacts section.
 4. Unzip it and transfer the `.apk` to your phone.
 
 The workflow runs the unit tests before building, so a green run means the

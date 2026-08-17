@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ad Blocker</string>
+    <string name="app_name">TripoleFlux</string>
 
     <string name="status_on">Filtering DNS for every app</string>
     <string name="status_off">Off</string>
@@ -43,7 +43,7 @@
     <string name="permission_declined">VPN permission is required to filter DNS.</string>
 
     <string name="channel_name">Blocking status</string>
-    <string name="notification_title">Ad Blocker is on</string>
+    <string name="notification_title">TripoleFlux is on</string>
     <string name="notification_text">Filtering DNS for every app on this device.</string>
     <string name="action_stop">Stop</string>
 

@@ -77,15 +77,15 @@ jobs:
         run: |
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk \
-             "out/ad-blocker-${VERSION_NAME}.apk"
-          sha256sum "out/ad-blocker-${VERSION_NAME}.apk" \
-            > "out/ad-blocker-${VERSION_NAME}.apk.sha256"
+             "out/tripoleflux-${VERSION_NAME}.apk"
+          sha256sum "out/tripoleflux-${VERSION_NAME}.apk" \
+            > "out/tripoleflux-${VERSION_NAME}.apk.sha256"
           ls -lh out/
 
       - name: Upload APK as a build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ad-blocker-release-${{ env.VERSION_NAME }}
+          name: tripoleflux-release-${{ env.VERSION_NAME }}
           path: out/*
           if-no-files-found: error
 
@@ -94,10 +94,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          name: Ad Blocker ${{ env.VERSION_NAME }}
+          name: TripoleFlux ${{ env.VERSION_NAME }}
           files: out/*
           body: |
-            Signed release build of Ad Blocker ${{ env.VERSION_NAME }}.
+            Signed release build of TripoleFlux ${{ env.VERSION_NAME }}.
 
             Device-wide DNS filtering over a local VpnService. No root, no proxying —
             only DNS is routed into the tunnel.

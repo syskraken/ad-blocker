@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AdBlocker"
+rootProject.name = "TripoleFlux"
 include(":app")

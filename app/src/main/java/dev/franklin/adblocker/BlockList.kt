@@ -147,7 +147,7 @@ object BlockList {
             readTimeout = 60_000
             instanceFollowRedirects = true
             setRequestProperty("Accept-Encoding", "gzip")
-            setRequestProperty("User-Agent", "AdBlocker/1.0 (Android)")
+            setRequestProperty("User-Agent", "TripoleFlux/1.0 (Android)")
         }
         try {
             if (connection.responseCode !in 200..299) {
