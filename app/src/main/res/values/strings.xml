@@ -29,6 +29,29 @@
     <string name="update_done">Blocklists updated: %1$d domains</string>
     <string name="update_failed">Update failed: %1$s</string>
 
+    <string name="heading_security">Security</string>
+    <string name="security_help">Turning blocking off requires the PIN. The default is 2026 — change it below.\n\nThis stops a casual tap, not a determined person: Android\'s own VPN settings and Force stop can switch blocking off without going through this app.</string>
+    <string name="pin_prompt_title">Enter PIN</string>
+    <string name="pin_prompt_stop">Enter the PIN to turn blocking off.</string>
+    <string name="pin_hint">PIN</string>
+    <string name="pin_wrong">Incorrect PIN</string>
+    <string name="pin_invalid">PIN must be 4 to 8 digits</string>
+    <string name="change_pin">Change PIN</string>
+    <string name="change_pin_title">Change PIN</string>
+    <string name="current_pin_hint">Current PIN</string>
+    <string name="new_pin_hint">New PIN</string>
+    <string name="pin_changed">PIN changed</string>
+    <string name="save">Save</string>
+
+    <string name="protect_uninstall">Protect from uninstall</string>
+    <string name="remove_protection">Remove uninstall protection</string>
+    <string name="admin_on">Uninstall protection is on</string>
+    <string name="admin_off">Uninstall protection is off</string>
+    <string name="admin_explanation">Stops TripoleFlux being uninstalled without first turning this off in Android settings.</string>
+    <string name="admin_disable_warning">TripoleFlux will become uninstallable and blocking can be removed from this device.</string>
+    <string name="protection_removed">Uninstall protection removed</string>
+    <string name="admin_unavailable">This device does not allow device administrators</string>
+
     <string name="heading_updates">App updates</string>
     <string name="version_format">Version %1$s</string>
     <string name="check_updates">Check for updates</string>

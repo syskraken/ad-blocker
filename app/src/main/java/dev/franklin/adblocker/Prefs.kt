@@ -7,6 +7,7 @@ object Prefs {
     private const val FILE = "adblocker"
     private const val KEY_ALLOWLIST = "allowlist"
     private const val KEY_BLOCKLIST = "custom_blocklist"
+    private const val KEY_PIN = "pin_hash"
     private const val KEY_ADULT_FILTER = "adult_filter"
     private const val KEY_LAST_UPDATE = "last_update"
 
@@ -38,6 +39,17 @@ object Prefs {
             .map { it.trim().trimEnd('.').lowercase() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }
             .toSet()
+
+    /** Falls back to the seeded default until the user sets their own. */
+    private fun pinHash(context: Context): String =
+        of(context).getString(KEY_PIN, null) ?: Pin.hash(Pin.DEFAULT)
+
+    fun checkPin(context: Context, entered: String): Boolean =
+        Pin.hash(entered) == pinHash(context)
+
+    fun setPin(context: Context, pin: String) {
+        of(context).edit().putString(KEY_PIN, Pin.hash(pin)).apply()
+    }
 
     fun adultFilterEnabled(context: Context): Boolean =
         of(context).getBoolean(KEY_ADULT_FILTER, false)

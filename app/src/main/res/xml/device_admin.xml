@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No policies are requested. Blocking uninstall comes from being an active
+     admin at all, so asking for powers the app never uses would only make the
+     activation screen more alarming than it needs to be. -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies />
+</device-admin>

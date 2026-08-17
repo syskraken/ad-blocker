@@ -27,7 +27,9 @@ class QuickTileService : TileService() {
         super.onClick()
 
         if (AdVpnService.isRunning) {
-            startService(Intent(this, AdVpnService::class.java).setAction(AdVpnService.ACTION_STOP))
+            // Stopping needs the PIN, and a tile cannot show a dialog, so send
+            // the user to the app rather than letting the tile bypass the gate.
+            openApp()
             return
         }
 

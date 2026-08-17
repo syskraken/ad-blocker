@@ -2,6 +2,7 @@ package dev.franklin.adblocker
 
 import android.Manifest
 import android.app.StatusBarManager
+import android.app.admin.DevicePolicyManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
@@ -15,6 +16,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.widget.Button
@@ -43,6 +45,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adultFilter: CheckBox
     private lateinit var versionInfo: TextView
     private lateinit var checkUpdates: Button
+    private lateinit var adminStatus: TextView
+    private lateinit var toggleAdmin: Button
 
     /** Set once a check finds something newer, so the button can offer it directly. */
     private var availableUpdate: UpdateChecker.Release? = null
@@ -99,8 +103,13 @@ class MainActivity : AppCompatActivity() {
         blocklist.setText(Prefs.blocklistText(this))
 
         toggle.setOnClickListener {
-            if (AdVpnService.isRunning) stopVpn() else requestVpn()
+            if (AdVpnService.isRunning) promptPinThenStop() else requestVpn()
         }
+
+        findViewById<Button>(R.id.change_pin).setOnClickListener { promptChangePin() }
+        adminStatus = findViewById(R.id.admin_status)
+        toggleAdmin = findViewById(R.id.toggle_admin)
+        toggleAdmin.setOnClickListener { toggleUninstallProtection() }
 
         update.setOnClickListener { updateBlocklists() }
 
@@ -143,6 +152,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Force a rebuild: entries may have been evicted or added while away.
         renderedRevision = -1L
+        // Admin state can change in system settings while the app is backgrounded.
+        renderAdminState()
         ui.post(refresh)
     }
 
@@ -216,6 +227,129 @@ class MainActivity : AppCompatActivity() {
                 },
             )
         }
+    }
+
+    // --- PIN -----------------------------------------------------------------
+
+    /** Turning blocking on is free; turning it off is what the PIN guards. */
+    private fun promptPinThenStop() {
+        val input = pinField()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pin_prompt_title)
+            .setMessage(R.string.pin_prompt_stop)
+            .setView(wrap(input))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                if (Prefs.checkPin(this, input.text.toString())) {
+                    stopVpn()
+                } else {
+                    toast(getString(R.string.pin_wrong))
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun promptChangePin() {
+        val current = pinField().apply { hint = getString(R.string.current_pin_hint) }
+        val replacement = pinField().apply { hint = getString(R.string.new_pin_hint) }
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (24 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(current)
+            addView(replacement)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.change_pin_title)
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val entered = replacement.text.toString()
+                when {
+                    !Prefs.checkPin(this, current.text.toString()) ->
+                        toast(getString(R.string.pin_wrong))
+
+                    !Pin.isAcceptable(entered) ->
+                        toast(getString(R.string.pin_invalid))
+
+                    else -> {
+                        Prefs.setPin(this, entered)
+                        toast(getString(R.string.pin_changed))
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun pinField(): EditText = EditText(this).apply {
+        hint = getString(R.string.pin_hint)
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        setSingleLine()
+    }
+
+    private fun wrap(view: android.view.View): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        val pad = (24 * resources.displayMetrics.density).toInt()
+        setPadding(pad, pad / 2, pad, 0)
+        addView(view)
+    }
+
+    // --- uninstall protection -------------------------------------------------
+
+    private fun adminComponent() = ComponentName(this, AdminReceiver::class.java)
+
+    private fun isAdminActive(): Boolean = try {
+        getSystemService(DevicePolicyManager::class.java)?.isAdminActive(adminComponent()) == true
+    } catch (e: Exception) {
+        false
+    }
+
+    private fun toggleUninstallProtection() {
+        if (isAdminActive()) {
+            // Removing protection is gated the same way as stopping blocking.
+            val input = pinField()
+            AlertDialog.Builder(this)
+                .setTitle(R.string.pin_prompt_title)
+                .setView(wrap(input))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    if (!Prefs.checkPin(this, input.text.toString())) {
+                        toast(getString(R.string.pin_wrong))
+                        return@setPositiveButton
+                    }
+                    try {
+                        getSystemService(DevicePolicyManager::class.java)
+                            ?.removeActiveAdmin(adminComponent())
+                        toast(getString(R.string.protection_removed))
+                    } catch (e: Exception) {
+                        toast(e.message ?: getString(R.string.admin_unavailable))
+                    }
+                    renderAdminState()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+
+        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent())
+            .putExtra(
+                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                getString(R.string.admin_explanation),
+            )
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            toast(getString(R.string.admin_unavailable))
+        }
+    }
+
+    private fun renderAdminState() {
+        val active = isAdminActive()
+        adminStatus.text = getString(if (active) R.string.admin_on else R.string.admin_off)
+        toggleAdmin.text =
+            getString(if (active) R.string.remove_protection else R.string.protect_uninstall)
     }
 
     private fun currentVersion(): String = try {
