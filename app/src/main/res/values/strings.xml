@@ -77,8 +77,7 @@
 
     <string name="channel_name">Blocking status</string>
     <string name="notification_title">TripoleFlux is on</string>
-    <string name="notification_text">Filtering DNS for every app on this device.</string>
-    <string name="action_stop">Stop</string>
+    <string name="notification_text">Filtering DNS for every app. Open TripoleFlux to turn it off.</string>
 
     <string name="fgs_purpose">Runs a local, loopback-only VPN so advertising and tracker domains can be filtered at the DNS layer for all apps. No traffic leaves the device through this service.</string>
 </resources>

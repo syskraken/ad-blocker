@@ -298,10 +298,13 @@ class AdVpnService : VpnService() {
     private fun startForegroundCompat() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // MIN is the quietest a foreground service is allowed to be: no
+            // sound, no badge, and collapsed into the silent section of the
+            // shade. Android will not let it be hidden entirely.
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 getString(R.string.channel_name),
-                NotificationManager.IMPORTANCE_LOW,
+                NotificationManager.IMPORTANCE_MIN,
             ).apply { setShowBadge(false) }
             manager.createNotificationChannel(channel)
         }
@@ -312,21 +315,16 @@ class AdVpnService : VpnService() {
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val stop = PendingIntent.getService(
-            this,
-            1,
-            Intent(this, AdVpnService::class.java).setAction(ACTION_STOP),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
+        // Deliberately no Stop action: blocking is turned off from inside the
+        // app, so it cannot be switched off with a stray tap from the shade.
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(getString(R.string.notification_text))
             .setSmallIcon(R.drawable.ic_shield)
             .setContentIntent(openApp)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(0, getString(R.string.action_stop), stop)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setShowWhen(false)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
