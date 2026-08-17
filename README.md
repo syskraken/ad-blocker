@@ -79,7 +79,7 @@ and never on the build machine after the run finishes.
 Android Studio.
 
 ```bash
-keytool -genkeypair -v -keystore release.jks -alias adblocker -keyalg RSA -keysize 4096 -validity 10000
+keytool -genkeypair -v -keystore release.jks -alias tripoleflux -keyalg RSA -keysize 4096 -validity 10000
 ```
 
 It will ask for a keystore password, then some identifying details (a name is
@@ -108,7 +108,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 | --- | --- |
 | `KEYSTORE_BASE64` | the entire contents of `release.jks.base64` |
 | `KEYSTORE_PASSWORD` | the keystore password you chose |
-| `KEY_ALIAS` | `adblocker` |
+| `KEY_ALIAS` | `tripoleflux` |
 | `KEY_PASSWORD` | the key password (same as the keystore password if you pressed Enter) |
 
 Then delete `release.jks.base64` — it is a plaintext copy of your private key.
