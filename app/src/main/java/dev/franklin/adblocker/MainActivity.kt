@@ -570,6 +570,8 @@ class MainActivity : AppCompatActivity() {
         status.setTextColor(
             ContextCompat.getColor(this, if (running) R.color.status_on else R.color.status_off),
         )
+        findViewById<TextView>(R.id.private_dns_warning).visibility =
+            if (running && PrivateDns.isStrict(this)) TextView.VISIBLE else TextView.GONE
         toggle.text = getString(if (running) R.string.turn_off else R.string.turn_on)
 
         val queries = AdVpnService.queryCount.get()

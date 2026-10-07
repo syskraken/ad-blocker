@@ -7,7 +7,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -47,6 +49,10 @@ class AdVpnService : VpnService() {
         private const val ADDRESS_V6 = "fd00:1:adb1::2"
         private const val DNS_V6 = "fd00:1:adb1::1"
 
+        // Firefox asks this name before enabling its own DNS-over-HTTPS; NXDOMAIN
+        // is the documented signal to keep using the system resolver (this one).
+        private const val DOH_CANARY = "use-application-dns.net"
+
         private val FALLBACK_DNS = listOf("1.1.1.1", "9.9.9.9", "8.8.8.8")
 
         @Volatile
@@ -61,7 +67,9 @@ class AdVpnService : VpnService() {
     private var reader: Thread? = null
     private var output: FileOutputStream? = null
     private var pool: ExecutorService? = null
-    private var upstreams: List<InetAddress> = emptyList()
+    @Volatile private var upstreams: List<InetAddress> = emptyList()
+    private val cache = DnsCache()
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private val writeLock = Any()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -95,6 +103,7 @@ class AdVpnService : VpnService() {
 
         // Read the real resolvers before we become the active network.
         upstreams = discoverUpstreams()
+        cache.clear()
 
         val builder = Builder()
             .setSession(getString(R.string.app_name))
@@ -151,7 +160,40 @@ class AdVpnService : VpnService() {
             start()
         }
 
+        watchNetworks()
         QuickTileService.refresh(this)
+    }
+
+    /**
+     * Resolvers change when the device moves between Wi-Fi and mobile data. A
+     * stale list would keep sending queries to a server that is no longer
+     * reachable, so re-read it on every change and drop answers cached from the
+     * old network.
+     */
+    private fun watchNetworks() {
+        try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .build()
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) = refreshUpstreams()
+                override fun onLost(network: Network) = refreshUpstreams()
+                override fun onLinkPropertiesChanged(network: Network, props: android.net.LinkProperties) =
+                    refreshUpstreams()
+            }
+            cm.registerNetworkCallback(request, callback)
+            networkCallback = callback
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not watch for network changes", e)
+        }
+    }
+
+    private fun refreshUpstreams() {
+        if (!isRunning) return
+        upstreams = discoverUpstreams()
+        cache.clear()
     }
 
     private fun readLoop(pfd: ParcelFileDescriptor) {
@@ -188,15 +230,50 @@ class AdVpnService : VpnService() {
         queryCount.incrementAndGet()
 
         val query = Dns.parseQuery(payload, payload.size)
-        if (query != null && BlockList.isBlocked(query.name)) {
-            blockedCount.incrementAndGet()
-            BlockLog.record(query.name)
-            write(Ip.buildUdpReply(packet, Dns.buildBlockedResponse(payload, query)))
-            return
+        if (query != null) {
+            if (query.name.equals(DOH_CANARY, ignoreCase = true)) {
+                write(Ip.buildUdpReply(packet, Dns.buildNxdomain(payload, query)))
+                return
+            }
+            if (BlockList.isBlocked(query.name)) {
+                block(packet, payload, query)
+                return
+            }
+        }
+
+        val version = BlockList.version
+        cache.sync(version)
+        val key = query?.let { cache.key(payload, it) }
+        if (query != null && key != null) {
+            cache.get(key)?.let {
+                write(Ip.buildUdpReply(packet, Dns.withId(it, query.id)))
+                return
+            }
         }
 
         val answer = forward(payload) ?: return
+        val parsed = Dns.parseAnswer(answer, answer.size)
+
+        // CNAME cloaking: a harmless-looking first-party name that aliases a
+        // tracker. Judge the whole chain, unless the user allowed the name.
+        if (query != null && parsed != null && !BlockList.isUnderAllowed(query.name) &&
+            parsed.cnames.any { BlockList.isBlocked(it) }
+        ) {
+            block(packet, payload, query)
+            return
+        }
+
+        // Skip the store if the rules changed while this lookup was in flight.
+        if (query != null && key != null && parsed != null && version == BlockList.version) {
+            cache.put(key, answer, parsed)
+        }
         write(Ip.buildUdpReply(packet, answer))
+    }
+
+    private fun block(packet: Ip.UdpPacket, payload: ByteArray, query: Dns.Query) {
+        blockedCount.incrementAndGet()
+        BlockLog.record(query.name)
+        write(Ip.buildUdpReply(packet, Dns.buildBlockedResponse(payload, query)))
     }
 
     private fun forward(payload: ByteArray): ByteArray? {
@@ -269,6 +346,16 @@ class AdVpnService : VpnService() {
     private fun stopTunnel() {
         val wasRunning = isRunning
         isRunning = false
+
+        networkCallback?.let {
+            try {
+                (getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(it)
+            } catch (e: Exception) {
+                // Never registered, or already gone.
+            }
+        }
+        networkCallback = null
+        cache.clear()
 
         reader?.interrupt()
         reader = null

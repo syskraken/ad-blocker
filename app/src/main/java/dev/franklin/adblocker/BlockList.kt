@@ -87,6 +87,10 @@ object BlockList {
     @Volatile private var custom: Set<String> = emptySet()
     @Volatile private var loaded = false
 
+    /** Bumped whenever the rules change, so cached DNS answers can be discarded. */
+    @Volatile var version = 0
+        private set
+
     fun size(): Int = blocked.size
 
     fun customSize(): Int = custom.size
@@ -118,6 +122,7 @@ object BlockList {
         allowed = Prefs.allowlist(context)
         custom = Prefs.blocklist(context)
         loaded = true
+        version++
     }
 
     /**
@@ -129,6 +134,20 @@ object BlockList {
     fun refreshUserLists(context: Context) {
         allowed = Prefs.allowlist(context)
         custom = Prefs.blocklist(context)
+        version++
+    }
+
+    /** True when the host or any parent is on the user's allowlist. */
+    fun isUnderAllowed(host: String): Boolean {
+        val name = host.trimEnd('.').lowercase()
+        val allow = allowed
+        var i = 0
+        while (true) {
+            if (allow.contains(if (i == 0) name else name.substring(i))) return true
+            val dot = name.indexOf('.', i)
+            if (dot < 0) return false
+            i = dot + 1
+        }
     }
 
     /**
